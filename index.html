@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PayPal Hosted Fields Payment</title>
+<script src="https://www.paypal.com/sdk/js?client-id=AeFqVpOKkOztbT1Ifp62Hml9ON6xd7XLX7Wuqy6PcSxd35K6WmcCj66tnAZmqpLoQ_ImiEZKB5ZdDJ8B&components=buttons,hosted-fields&currency=USD&intent=capture"></script>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    padding: 2rem;
+    background: #f0f2f5;
+  }
+  #card-form {
+    max-width: 400px;
+    margin: auto;
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 0 12px rgba(0,0,0,0.1);
+  }
+  .field {
+    margin-bottom: 15px;
+  }
+  label {
+    display: block;
+    margin-bottom: 6px;
+  }
+  #card-number, #cvv, #expiration-date {
+    height: 40px;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+  }
+  #submit-button {
+    width: 100%;
+    padding: 12px;
+    background: #0070ba;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+    cursor: pointer;
+  }
+  #submit-button:disabled {
+    background: #a0a0a0;
+    cursor: not-allowed;
+  }
+  #status {
+    margin-top: 15px;
+    font-weight: bold;
+    text-align: center;
+  }
+  .inline-fields {
+    display: flex;
+    gap: 10px;
+  }
+  .inline-fields > div {
+    flex: 1;
+  }
+</style>
+</head>
+<body>
+
+<div id="card-form">
+  <h2>Pay $10 with Card</h2>
+  <div class="field">
+    <label>Card Number</label>
+    <div id="card-number"></div>
+  </div>
+
+  <div class="inline-fields">
+    <div class="field">
+      <label>Expiration Date</label>
+      <div id="expiration-date"></div>
+    </div>
+
+    <div class="field">
+      <label>CVV</label>
+      <div id="cvv"></div>
+    </div>
+  </div>
+
+  <button id="submit-button" disabled>Pay Now</button>
+  <div id="status"></div>
+</div>
+
+<script>
+  const submitButton = document.getElementById('submit-button');
+  const statusDiv = document.getElementById('status');
+
+  paypal.HostedFields.render({
+    createOrder: () => {
+      return fetch('/create-order', { method: 'POST' })
+        .then(res => res.json())
+        .then(orderData => orderData.id);
+    },
+    styles: {
+      'input': {
+        'font-size': '16px',
+        'color': '#3a3a3a'
+      },
+      ':focus': {
+        'color': 'black'
+      },
+      '.valid': {
+        'color': 'green'
+      },
+      '.invalid': {
+        'color': 'red'
+      }
+    },
+    fields: {
+      number: {
+        selector: '#card-number',
+        placeholder: '4111 1111 1111 1111'
+      },
+      cvv: {
+        selector: '#cvv',
+        placeholder: '123'
+      },
+      expirationDate: {
+        selector: '#expiration-date',
+        placeholder: 'MM/YY'
+      }
+    }
+  }).then(hostedFieldsInstance => {
+    hostedFieldsInstance.on('validityChange', event => {
+      const formValid = Object.keys(event.fields).every(key => event.fields[key].isValid);
+      submitButton.disabled = !formValid;
+    });
+
+    submitButton.addEventListener('click', () => {
+      submitButton.disabled = true;
+      statusDiv.textContent = 'Processing payment...';
+
+      hostedFieldsInstance.submit({
+        // Optional cardholder name etc
+      }).then(payload => {
+        return fetch(`/capture-order/${payload.orderId}`, {
+          method: 'POST'
+        }).then(res => res.json())
+          .then(data => {
+            if (data.status === 'COMPLETED') {
+              statusDiv.textContent = `Payment successful! Transaction ID: ${data.purchase_units[0].payments.captures[0].id}`;
+            } else {
+              statusDiv.textContent = `Payment status: ${data.status}`;
+            }
+          });
+      }).catch(err => {
+        statusDiv.textContent = 'Payment failed: ' + err.message;
+        submitButton.disabled = false;
+      });
+    });
+  });
+</script>
+
+</body>
+</html>

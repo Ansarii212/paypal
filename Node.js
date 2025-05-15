@@ -1,16 +1,19 @@
-// server.js
 const express = require('express');
 const fetch = require('node-fetch');
+const cors = require('cors');
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;
 
+// Middlewares
+app.use(cors()); // يسمح بالوصول من أي دومين (يمكن تخصيصه لاحقاً)
 app.use(express.static('public'));
 app.use(express.json());
 
-// استبدل CLIENT_ID و SECRET بالبيانات بتاعتك
-const CLIENT_ID = 'AeFqVpOKkOztbT1Ifp62Hml9ON6xd7XLX7Wuqy6PcSxd35K6WmcCj66tnAZmqpLoQ_ImiEZKB5ZdDJ8B';
-const SECRET = 'EDM_xgdkjnFFWxFHpzluk38boQ2RSE3AWvHPLkkKHkA221bzS-j96GafbXjfGn-lmU0CCl4XyC7FIHwk';
+// استخدم المتغيرات البيئية (من إعدادات Railway)
+const CLIENT_ID = process.env.PAYPAL_CLIENT_ID;
+const SECRET = process.env.PAYPAL_SECRET;
 
+// توكن الوصول
 async function generateAccessToken() {
   const auth = Buffer.from(CLIENT_ID + ':' + SECRET).toString('base64');
   const response = await fetch('https://api-m.sandbox.paypal.com/v1/oauth2/token', {
@@ -25,46 +28,56 @@ async function generateAccessToken() {
   return data.access_token;
 }
 
+// إنشاء الطلب
 app.post('/create-order', async (req, res) => {
-  const accessToken = await generateAccessToken();
+  try {
+    const accessToken = await generateAccessToken();
 
-  const response = await fetch('https://api-m.sandbox.paypal.com/v2/checkout/orders', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${accessToken}`
-    },
-    body: JSON.stringify({
-      intent: "CAPTURE",
-      purchase_units: [{
-        amount: {
-          currency_code: "USD",
-          value: "10.00"
-        }
-      }]
-    })
-  });
+    const response = await fetch('https://api-m.sandbox.paypal.com/v2/checkout/orders', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`
+      },
+      body: JSON.stringify({
+        intent: "CAPTURE",
+        purchase_units: [{
+          amount: {
+            currency_code: "USD",
+            value: "10.00"
+          }
+        }]
+      })
+    });
 
-  const data = await response.json();
-  res.json(data);
+    const data = await response.json();
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: 'Error creating PayPal order', details: error });
+  }
 });
 
+// تأكيد الدفع
 app.post('/capture-order/:orderId', async (req, res) => {
-  const orderId = req.params.orderId;
-  const accessToken = await generateAccessToken();
+  try {
+    const orderId = req.params.orderId;
+    const accessToken = await generateAccessToken();
 
-  const response = await fetch(`https://api-m.sandbox.paypal.com/v2/checkout/orders/${orderId}/capture`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${accessToken}`
-    }
-  });
+    const response = await fetch(`https://api-m.sandbox.paypal.com/v2/checkout/orders/${orderId}/capture`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`
+      }
+    });
 
-  const data = await response.json();
-  res.json(data);
+    const data = await response.json();
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: 'Error capturing PayPal order', details: error });
+  }
 });
 
 app.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}`);
+  console.log(`Server running on port ${port}`);
 });

@@ -1,14 +1,11 @@
 const express = require('express');
 const fetch = require('node-fetch');
 const app = express();
-
-// استخدم بورت Railway
 const port = process.env.PORT || 3000;
 
 app.use(express.static('public'));
 app.use(express.json());
 
-// بيانات Sandbox
 const CLIENT_ID = 'AeFqVpOKkOztbT1Ifp62Hml9ON6xd7XLX7Wuqy6PcSxd35K6WmcCj66tnAZmqpLoQ_ImiEZKB5ZdDJ8B';
 const SECRET = 'EDM_xgdkjnFFWxFHpzluk38boQ2RSE3AWvHPLkkKHkA221bzS-j96GafbXjfGn-lmU0CCl4XyC7FIHwk';
 
@@ -68,5 +65,5 @@ app.post('/capture-order/:orderId', async (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}`);
+  console.log(`Server running on port ${port}`);
 });

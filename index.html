@@ -1,68 +1,33 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>PayPal Sandbox Payment</title>
-  <script src="https://www.paypal.com/sdk/js?client-id=AeFqVpOKkOztbT1Ifp62Hml9ON6xd7XLX7Wuqy6PcSxd35K6WmcCj66tnAZmqpLoQ_ImiEZKB5ZdDJ8B&currency=USD"></script>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 40px;
-      background: #f9f9f9;
-    }
-    #paypal-button-container {
-      max-width: 350px;
-      margin: auto;
-    }
-  </style>
-</head>
-<body>
+<html>
+  <head>
+    <title>PayPal Button</title>
+    <script src="https://www.paypal.com/sdk/js?client-id=sb&currency=USD"></script>
+  </head>
+  <body>
+    <div id="paypal-button-container"></div>
 
-  <h2 style="text-align:center;">PayPal Sandbox Payment</h2>
-
-  <div id="paypal-button-container"></div>
-
-  <script>
-    paypal.Buttons({
-      createOrder: function(data, actions) {
-        // نرسل طلب إنشاء الطلب للسيرفر (Railway)
-        return fetch('https://your-railway-app.up.railway.app/create-order', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            amount: '10.00'  // السعر اللي عايز تدفعه (دولار 10 مثال)
-          })
-        })
-        .then(response => response.json())
-        .then(order => {
-          return order.id; // نرجع الـ order ID اللي السيرفر عمله
-        })
-        .catch(err => {
-          console.error('Error creating order:', err);
-        });
-      },
-      onApprove: function(data, actions) {
-        // لما العميل يوافق على الدفع، نكمل العملية في السيرفر
-        return fetch(`https://your-railway-app.up.railway.app/capture-order/${data.orderID}`, {
-          method: 'POST'
-        })
-        .then(response => response.json())
-        .then(details => {
-          alert('Transaction completed by ' + details.payer.name.given_name);
-          console.log(details);
-        })
-        .catch(err => {
-          console.error('Error capturing order:', err);
-        });
-      },
-      onError: function (err) {
-        console.error('PayPal Checkout Error:', err);
-      }
-    }).render('#paypal-button-container');
-  </script>
-
-</body>
+    <script>
+      paypal.Buttons({
+        createOrder: function(data, actions) {
+          return fetch('https://paypal-production-ea16.up.railway.app/create-order', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          }).then(res => res.json())
+            .then(data => data.id);
+        },
+        onApprove: function(data, actions) {
+          return fetch(`https://paypal-production-ea16.up.railway.app/capture-order/${data.orderID}`, {
+            method: 'POST'
+          }).then(res => res.json())
+            .then(data => {
+              alert('Payment successful!');
+              console.log(data);
+            });
+        }
+      }).render('#paypal-button-container');
+    </script>
+  </body>
 </html>

@@ -10,9 +10,11 @@
   <div id="paypal-button-container"></div>
 
   <script>
+    const SERVER_URL = 'https://paypal-production-ea16.up.railway.app';
+
     paypal.Buttons({
       createOrder: function(data, actions) {
-        return fetch('/create-order', {
+        return fetch(`${SERVER_URL}/create-order`, {
           method: 'post',
           headers: {
             'content-type': 'application/json'
@@ -24,7 +26,7 @@
         });
       },
       onApprove: function(data, actions) {
-        return fetch(`/capture-order/${data.orderID}`, {
+        return fetch(`${SERVER_URL}/capture-order/${data.orderID}`, {
           method: 'post'
         }).then(function(res) {
           return res.json();

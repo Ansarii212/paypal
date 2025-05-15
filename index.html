@@ -1,33 +1,62 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <title>PayPal Button</title>
-    <script src="https://www.paypal.com/sdk/js?client-id=sb&currency=USD"></script>
-  </head>
-  <body>
-    <div id="paypal-button-container"></div>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PayPal Payment</title>
+  <script src="https://www.paypal.com/sdk/js?client-id=AeFqVpOKkOztbT1Ifp62Hml9ON6xd7XLX7Wuqy6PcSxd35K6WmcCj66tnAZmqpLoQ_ImiEZKB5ZdDJ8B&currency=USD"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f9f9f9;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    #paypal-button-container {
+      background: #fff;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
+<body>
+  <div id="paypal-button-container"></div>
 
-    <script>
-      paypal.Buttons({
-        createOrder: function(data, actions) {
-          return fetch('https://paypal-production-ea16.up.railway.app/create-order', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            }
-          }).then(res => res.json())
-            .then(data => data.id);
-        },
-        onApprove: function(data, actions) {
-          return fetch(`https://paypal-production-ea16.up.railway.app/capture-order/${data.orderID}`, {
-            method: 'POST'
-          }).then(res => res.json())
-            .then(data => {
-              alert('Payment successful!');
-              console.log(data);
-            });
-        }
-      }).render('#paypal-button-container');
-    </script>
-  </body>
+  <script>
+    paypal.Buttons({
+      style: {
+        layout: 'vertical',
+        color: 'blue',
+        shape: 'pill',
+        label: 'pay'
+      },
+      createOrder: function(data, actions) {
+        return fetch('https://paypal-production-ea16.up.railway.app/create-order', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        })
+        .then(res => res.json())
+        .then(data => data.id);
+      },
+      onApprove: function(data, actions) {
+        return fetch(`https://paypal-production-ea16.up.railway.app/capture-order/${data.orderID}`, {
+          method: 'POST'
+        })
+        .then(res => res.json())
+        .then(details => {
+          alert('Payment completed by ' + details.payer.name.given_name);
+        });
+      },
+      onError: function(err) {
+        console.error('PayPal Error:', err);
+        alert('An error occurred during the payment process.');
+      }
+    }).render('#paypal-button-container');
+  </script>
+</body>
 </html>
